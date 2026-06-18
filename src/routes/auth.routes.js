@@ -58,7 +58,7 @@ authRouter.post('/Admincreate', async (req, res) => {
       });
     }
 
-    // 2. Duplicate validation check
+    // 2. Duplicate validation check using the imported userModel
     const existingUser = await userModel.findOne({ emailAddress });
     if (existingUser) {
       return res.status(400).json({
@@ -76,9 +76,9 @@ authRouter.post('/Admincreate', async (req, res) => {
       fullName,
       emailAddress,
       password: hashedPassword,
-      isAdmin: true,            // ✅ Forced Admin Flag
-      isVerified: true,         // ✅ Pre-verified
-      registrationStatus: "Approved", // ✅ Pre-approved
+      isAdmin: true,
+      isVerified: true,
+      registrationStatus: "Approved",
       contactNumber: "0000000000",
       gender: "Male",
       department: "Administration"
