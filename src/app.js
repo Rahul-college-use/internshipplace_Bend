@@ -13,10 +13,11 @@ database()
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
+// app.use(express.json());
 
 // Configure Cross-Origin Resource Sharing rules
 const corsOptions = {
-  origin: ["http://localhost:5173", "https://internshipplace.vercel.app/"],
+  origin: ["http://localhost:5173", "https://internshipplace.vercel.app"],
   credentials: true,
   optionsSuccessStatus: 200
 };
