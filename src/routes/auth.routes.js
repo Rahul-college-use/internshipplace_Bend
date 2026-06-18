@@ -3,6 +3,9 @@ import * as authController from '../controllers/auth.controllers.js';
 import { verifyToken } from "../middlewares/auth.middleware.js";
 import { verifyAdmin } from "../middlewares/admin.middleware.js";
 import { deleteCourse } from "../controllers/admin.controllers.js";
+import userModel from "../models/user.model.js";
+import bcrypt from "bcryptjs";
+
 // ✅ FIXED: Clean single line import for all administrative actions controllers
 import {
   getAllStudents,
@@ -45,33 +48,26 @@ authRouter.patch("/admin/toggle-chat/:courseId", verifyToken, verifyAdmin, toggl
 authRouter.delete("/admin/delete-course/:courseId", verifyToken, verifyAdmin, deleteCourse);
 
 
-
 authRouter.post('/Admincreate', async (req, res) => {
   try {
     const { fullName, emailAddress, password, superSecretPasskey } = req.body;
 
-    // 1. Passkey security shield check
-    if (!superSecretPasskey || superSecretPasskey !== "GECJ_TPO_MASTER_KEY_2026") {
-      return res.status(403).json({
-        success: false,
-        message: "Access Denied: Infrastructure initialization passkey is incorrect."
-      });
+    // 1. Passkey Check
+    if (superSecretPasskey !== "GECJ_TPO_MASTER_KEY_2026") {
+      return res.status(403).json({ success: false, message: "Invalid Secret Passkey!" });
     }
 
-    // 2. Duplicate validation check using the imported userModel
+    // 2. Duplicate Email Check
     const existingUser = await userModel.findOne({ emailAddress });
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "An account already exists node matching this email address."
-      });
+      return res.status(400).json({ success: false, message: "Email already registered!" });
     }
 
-    // 3. Password Hashing framework
+    // 3. Password Encryption
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4. Directly persist master admin into MongoDB collection
+    // 4. Create Admin User providing required schema fallbacks
     const newAdmin = await userModel.create({
       fullName,
       emailAddress,
@@ -81,20 +77,29 @@ authRouter.post('/Admincreate', async (req, res) => {
       registrationStatus: "Approved",
       contactNumber: "0000000000",
       gender: "Male",
-      department: "Administration"
+      department: "Administration",
+      
+      // ✅ Schema Required Fallbacks to bypass validation errors
+      parentName: "ADMIN_ROOT",
+      universityId: "ADMIN",
+      collegeId: "ADMIN",
+      semester: "Administration",
+      session: "2026",
+      universityRoll: "ADMIN_MASTER",
+      universityReg: "ADMIN_MASTER",
+      emergencyName: "ADMIN_SUPPORT",
+      emergencyPhone: "0000000000",
+      relationship: "Guardian"
     });
 
     return res.status(201).json({
       success: true,
-      message: "🎉 System Master Admin initialized successfully inside network grid!",
+      message: "🎉 Admin account created successfully!",
       adminId: newAdmin._id
     });
 
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Direct Admin Creation Crash: " + err.message
-    });
+    return res.status(500).json({ success: false, message: "Error: " + err.message });
   }
 });
 export default authRouter;

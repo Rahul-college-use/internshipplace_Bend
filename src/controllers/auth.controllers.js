@@ -63,7 +63,7 @@ export async function login(req, res) {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.emailAddress },
+      { id: user._id, email: user.emailAddress,isAdmin: user.isAdmin },
       config.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -78,7 +78,7 @@ export async function login(req, res) {
       success: true,
       message: "Login successful",
       token,
-      user: { id: user._id, email: user.emailAddress },
+      user: { id: user._id, email: user.emailAddress, isAdmin: user.isAdmin},
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -113,7 +113,7 @@ export async function logout(req, res) {
 export async function getUserDashboardData(req, res) {
   try {
     const { userId } = req.params;
-    
+
     // ✅ ADDED: .populate("enrolledCourses") to convert IDs into full course data objects!
     const user = await userModel.findById(userId)
       .select("-password")
@@ -254,7 +254,7 @@ export async function getClassChatHistory(req, res) {
     const history = await chatModel.find({ courseId })
       .sort({ createdAt: -1 })
       .limit(50);
-    
+
     return res.status(200).json({ success: true, history: history.reverse() });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -265,7 +265,7 @@ export async function getRecordedLectures(req, res) {
   try {
     const { userId } = req.params;
     const user = await userModel.findById(userId).populate("enrolledCourses");
-    
+
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
