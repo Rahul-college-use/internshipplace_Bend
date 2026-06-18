@@ -39,7 +39,8 @@ const courseSchema = new mongoose.Schema(
       enum: ['All Specializations', 'B.Tech / Diploma','Computer Applications'],
       required: true
 
-    }
+    },
+    isChatEnabled: { type: Boolean, default: true } // ✅ Chat locking controller state flag
 
   },
 

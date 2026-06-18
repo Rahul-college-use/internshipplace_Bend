@@ -1,9 +1,9 @@
 import userModel from "../models/user.model.js";
+import courseModel from "../models/course.model.js"; // ✅ REQUIRED: Ensure your Course Schema is imported
 
 // 1. GET ALL STUDENTS REGISTRATION PIPELINE (For Admin Grid View)
 export async function getAllStudents(req, res) {
   try {
-    // Saare non-admin users ko fetch karein aur newest register entries ko pehle dikhayein
     const students = await userModel.find({ isAdmin: false })
       .select("-password")
       .sort({ createdAt: -1 });
@@ -29,12 +29,10 @@ export async function updateStudentStatus(req, res) {
     if (status === "Approved") {
       updateFields.isVerified = true;
       
-      // Check karein agar student ke paas pehle se allocated studentId nahi hai
       const existingUser = await userModel.findById(studentIdToUpdate);
       if (!existingUser.studentId) {
-        // Dynamic Unique Generation Rule (e.g., INT2026CSE001 or using short slice keys)
         const timestampToken = Date.now().toString().slice(-4);
-        const randomHex = Math.floor(100 + Math.random() * 900); // 3 digit random padding
+        const randomHex = Math.floor(100 + Math.random() * 900); 
         updateFields.studentId = `INT-${timestampToken}${randomHex}`;
       }
     } else if (status === "Rejected") {
@@ -58,5 +56,92 @@ export async function updateStudentStatus(req, res) {
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: "Status Engine Mutation Crash: " + err.message });
+  }
+}
+
+// 3. ✅ NEW: VIEW ACTIVE ENROLLMENTS MATRIX (Kis course mein kaun kaun se student enrolled hain)
+export async function getCourseEnrollmentMatrix(req, res) {
+  try {
+    // Mongoose Aggregation Pipeline use karke data map group karenge
+    const enrollmentMatrix = await userModel.aggregate([
+      { $match: { isAdmin: false, isEnrolled: true } }, // Filters active enrolled users
+      { $unwind: "$enrolledCourses" }, // Breaks array elements down into streams
+      {
+        $group: {
+          _id: "$enrolledCourses", // Groups documents by individual course IDs
+          studentsCount: { $sum: 1 },
+          students: {
+            $push: {
+              _id: "$_id",
+              fullName: "$fullName",
+              emailAddress: "$emailAddress",
+              department: "$department",
+              universityRoll: "$universityRoll"
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "courses", // ⚠️ Ensure this matches the exact name of your courses collection in MongoDB
+          localField: "_id",
+          foreignField: "_id",
+          as: "courseDetails"
+        }
+      },
+      { $unwind: "$courseDetails" }
+    ]);
+
+    return res.status(200).json({ success: true, matrix: enrollmentMatrix });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Matrix Aggregation Crash: " + err.message });
+  }
+}
+
+// 4. ✅ NEW: TOGGLE LIVE CLASS CHAT CHANNEL (Admin live chat lock / unlock kar sake)
+export async function toggleCourseChat(req, res) {
+  try {
+    const { courseId } = req.params;
+    const { isChatEnabled } = req.body; // Expects true (open) or false (locked)
+
+    if (typeof isChatEnabled !== "boolean") {
+      return res.status(400).json({ success: false, message: "isChatEnabled status flag must be a boolean value." });
+    }
+
+    const updatedCourse = await courseModel.findByIdAndUpdate(
+      courseId,
+      { $set: { isChatEnabled } },
+      { new: true }
+    );
+
+    if (!updatedCourse) {
+      return res.status(404).json({ success: false, message: "Target course instance registry not found." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Live classroom chat has been successfully ${isChatEnabled ? 'enabled' : 'disabled'}.`,
+      course: updatedCourse
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Chat Mutation Pipeline Error: " + err.message });
+  }
+}
+export async function deleteCourse(req, res) {
+  try {
+    const { courseId } = req.params;
+
+    const deletedCourse = await courseModel.findByIdAndDelete(courseId);
+
+    if (!deletedCourse) {
+      return res.status(404).json({ success: false, message: "Target course model registry not found." });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `Course "${deletedCourse.courseName}" has been successfully removed from the system registry.` 
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Deletion Drop Failure: " + err.message });
   }
 }
