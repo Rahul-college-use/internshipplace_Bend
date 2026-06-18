@@ -6,14 +6,12 @@ import { createServer } from "http";
 import * as socketIO from "socket.io"; // Fixed: Namespace star import satisfies strict Node ESM loaders
 import authRouter from "./routes/auth.routes.js";
 import chatModel from "./models/chat.model.js";
-import database from './config/database.js'
-database()
+import database from './config/database.js';
 
 // Force stable public fallback DNS resolution environments
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
-// app.use(express.json());
 
 // Configure Cross-Origin Resource Sharing rules
 const corsOptions = {
@@ -27,7 +25,22 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan("dev")); // Real-time console endpoint hit logger
 
-// Application Router Mount Gateways
+// ─── VERCEL PRODUCTION DATABASE CONNECTION GATEWAY ──────────────────
+// Ensures Mongoose completes its initial handshake BEFORE routes fire queries
+app.use(async (req, res, next) => {
+  try {
+    await database();
+    next();
+  } catch (err) {
+    console.error("Database connection middleware blockage:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error: Database initialization failed." 
+    });
+  }
+});
+
+// Application Router Mount Gateways (Safely positioned down-stream)
 app.use("/api/auth", authRouter);
 
 // ─── SOCKET.IO PRODUCTION INTEGRATION LAYER ─────────────────────────
