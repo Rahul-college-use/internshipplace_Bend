@@ -14,7 +14,7 @@ const app = express();
 
 // Configure Cross-Origin Resource Sharing rules
 const corsOptions = {
-  origin: ["http://localhost:5173", "https://auth-frontend-alpha-one.vercel.app"],
+  origin: ["http://localhost:5173", "https://internshipplace.vercel.app/"],
   credentials: true,
   optionsSuccessStatus: 200
 };
