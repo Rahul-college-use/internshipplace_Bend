@@ -6,6 +6,8 @@ import { createServer } from "http";
 import * as socketIO from "socket.io"; // Fixed: Namespace star import satisfies strict Node ESM loaders
 import authRouter from "./routes/auth.routes.js";
 import chatModel from "./models/chat.model.js";
+import database from './config/database.js'
+database()
 
 // Force stable public fallback DNS resolution environments
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
