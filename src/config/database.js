@@ -3,13 +3,12 @@ import config from './config.js';
 
 async function connectDB() {
   try {
-    // If we're already connected, reuse the active connection
     if (mongoose.connection.readyState === 1) {
       return mongoose.connection;
     }
 
     const opts = {
-      bufferCommands: false,
+      bufferCommands: false, // This is fine, but requires strict connection handling
       serverSelectionTimeoutMS: 30000,
     };
 
@@ -19,7 +18,8 @@ async function connectDB() {
     return mongoose.connection;
   } catch (err) {
     console.error("=> MongoDB connection error:", err);
-    process.exit(1); // Stop the server immediately if the database is down
+    // REMOVED process.exit(1) for Vercel compatibility
+    throw err; 
   }
 }
 
