@@ -93,4 +93,4 @@ io.on("connection", (socket) => {
 });
 
 // Export the composite wrapper instance instead of the raw app layout framework
-export default httpServer;
+export default app;
